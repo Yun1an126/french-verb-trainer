@@ -1,0 +1,12 @@
+{
+  "name": "french-verb-trainer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test",
+    "check": "node --test && node --check server.js && node --check api/fayu-assistant.js && node --check src/app.js && node --check src/conjugation.js && node --check src/fayuAssistant.js && node --check src/verbData.js"
+  }
+}
