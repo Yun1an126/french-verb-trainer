@@ -1,3 +1,4 @@
+
 export const PERSONS = [
   { key: "je", label: "je / j'" },
   { key: "tu", label: "tu" },
@@ -45,11 +46,65 @@ function expandAcceptedAnswers(answers) {
 
   for (const answer of answers) {
     if (!answer) continue;
-    variants.add(answer);
-    variants.add(removeOptionalAgreementE(answer));
+    for (const variant of expandAnswerVariants(answer)) {
+      variants.add(variant);
+      variants.add(removeOptionalAgreementE(variant));
+    }
   }
 
   return [...variants];
+}
+
+function expandAnswerVariants(answer) {
+  const base = String(answer ?? "").trim();
+  const withoutAgreementCue = removeOptionalAgreementE(base);
+  return [
+    ...splitAlternativeForms(base),
+    ...splitAlternativeForms(withoutAgreementCue)
+  ];
+}
+
+function splitAlternativeForms(answer) {
+  const protectedAnswer = protectSubjectSlashes(answer);
+  if (!protectedAnswer.includes("/")) {
+    return [answer];
+  }
+
+  const parts = protectedAnswer.split(/\s*\/\s*/u).map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) {
+    return [answer];
+  }
+
+  const prefix = inferAlternativePrefix(parts[0]);
+  return parts.map((part, index) => {
+    const expanded = index === 0 || hasExplicitFormStart(part) ? part : `${prefix}${part}`;
+    return restoreSubjectSlashes(expanded);
+  });
+}
+
+function protectSubjectSlashes(answer) {
+  return String(answer ?? "")
+    .replace(/il\/elle\/on/gi, "IL_ELLE_ON")
+    .replace(/ils\/elles/gi, "ILS_ELLES");
+}
+
+function restoreSubjectSlashes(answer) {
+  return String(answer ?? "")
+    .replace(/IL_ELLE_ON/g, "il/elle/on")
+    .replace(/ILS_ELLES/g, "ils/elles");
+}
+
+function inferAlternativePrefix(firstPart) {
+  const jPrefix = firstPart.match(/^([Jj]['’])/u)?.[1];
+  if (jPrefix) {
+    return jPrefix;
+  }
+
+  return firstPart.match(/^(.*\s+)\S+$/u)?.[1] ?? "";
+}
+
+function hasExplicitFormStart(value) {
+  return /^(je|j['’]|tu|il|elle|on|nous|vous|ils|elles|il\/elle\/on|ils\/elles)\b/i.test(restoreSubjectSlashes(value));
 }
 
 function stripLeadingSubject(answer) {
