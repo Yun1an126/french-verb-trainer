@@ -1,3 +1,4 @@
+
 import { PERSONS, TENSES } from "./conjugation.js";
 import { buildFayuAssistantUrl } from "./verbData.js";
 
@@ -130,10 +131,114 @@ function splitFayuRow(row, person) {
 }
 
 function cleanFayuForm(value) {
-  return String(value ?? "")
+  const repaired = String(value ?? "")
     .replace(/(\p{L})\s+([çÇ])\s+(\p{L})/gu, "$1$2$3")
     .replace(/(\p{Ll}{2,})\s+(u|s|t|e|es|is|ent|ons|ez|ais|ait|ions|iez|aient|ai|as|a|âmes|âtes|èrent|rai|ras|ra|rons|rez|ront|ont|é)(?=\b)/gu, "$1$2");
+  return collapseHighlightedWordSpaces(repaired);
 }
+
+function collapseHighlightedWordSpaces(value) {
+  const tokens = String(value ?? "").trim().split(/\s+/u).filter(Boolean);
+  const output = [];
+  let wordPieces = [];
+
+  const flushWord = () => {
+    if (!wordPieces.length) return;
+    output.push(wordPieces.join(""));
+    wordPieces = [];
+  };
+
+  tokens.forEach((token, index) => {
+    if (token === "/" || token.includes("/") || isGrammarToken(token, index)) {
+      flushWord();
+      output.push(token);
+      return;
+    }
+    wordPieces.push(token);
+  });
+  flushWord();
+
+  return output.join(" ").replace(/\s+\/\s+/g, " / ");
+}
+
+function isGrammarToken(token, index) {
+  const normalized = token.toLocaleLowerCase("fr").replace(/[’]/g, "'");
+  if (index === 0 && /^j'[\p{L}]+$/u.test(normalized)) {
+    return true;
+  }
+  return GRAMMAR_TOKENS.has(normalized) || /^[mtsl]'$/u.test(normalized);
+}
+
+const GRAMMAR_TOKENS = new Set([
+  "je",
+  "j'",
+  "tu",
+  "il",
+  "elle",
+  "on",
+  "nous",
+  "vous",
+  "ils",
+  "elles",
+  "me",
+  "m'",
+  "te",
+  "t'",
+  "se",
+  "s'",
+  "le",
+  "la",
+  "l'",
+  "les",
+  "lui",
+  "leur",
+  "y",
+  "en",
+  "ai",
+  "as",
+  "a",
+  "avons",
+  "avez",
+  "ont",
+  "avais",
+  "avait",
+  "avions",
+  "aviez",
+  "avaient",
+  "aurai",
+  "auras",
+  "aura",
+  "aurons",
+  "aurez",
+  "auront",
+  "eus",
+  "eut",
+  "eûmes",
+  "eûtes",
+  "eurent",
+  "suis",
+  "es",
+  "est",
+  "sommes",
+  "êtes",
+  "sont",
+  "étais",
+  "était",
+  "étions",
+  "étiez",
+  "étaient",
+  "serai",
+  "seras",
+  "sera",
+  "serons",
+  "serez",
+  "seront",
+  "fus",
+  "fut",
+  "fûmes",
+  "fûtes",
+  "furent"
+]);
 
 function getNextStarters(person) {
   return {
