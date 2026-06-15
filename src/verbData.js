@@ -323,6 +323,30 @@ export function ensureUniqueVerbIds(verbs) {
   return verbs.map((verb) => ensureVerbId(verb, usedIds));
 }
 
+export function deleteVerbById(verbs, id, currentVerbId) {
+  if (!Array.isArray(verbs) || verbs.length <= 1) {
+    return {
+      verbs: Array.isArray(verbs) ? verbs : [],
+      currentVerbId
+    };
+  }
+
+  const deleteIndex = verbs.findIndex((verb) => verb.id === id);
+  if (deleteIndex < 0) {
+    return { verbs, currentVerbId };
+  }
+
+  const nextVerbs = verbs.filter((verb) => verb.id !== id);
+  const nextCurrentVerbId = currentVerbId === id
+    ? nextVerbs[Math.min(deleteIndex, nextVerbs.length - 1)]?.id
+    : currentVerbId;
+
+  return {
+    verbs: nextVerbs,
+    currentVerbId: nextCurrentVerbId ?? nextVerbs[0]?.id ?? ""
+  };
+}
+
 function cryptoSafeId(seed) {
   const base = normalizeVerbAlias(seed) || "verb";
   return `${base}-${Math.random().toString(36).slice(2, 8)}`;
