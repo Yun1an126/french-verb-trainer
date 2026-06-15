@@ -7,11 +7,13 @@ import {
   summarizePractice,
   toggleStandardVisibility
 } from "./conjugation.js";
+import { cleanConjugationForm } from "./fayuAssistant.js";
 import {
   SEED_VERBS,
   buildBlankVerb,
   buildFayuAssistantUrl,
   cloneVerb,
+  deleteVerbById,
   ensureUniqueVerbIds,
   ensureVerbId,
   resolveFayuAssistantInput
@@ -177,10 +179,15 @@ function renderVerbLibrary() {
       </div>
       <div class="verb-list">
         ${state.verbs.map((verb) => `
-          <button class="verb-item ${verb.id === state.currentVerbId ? "active" : ""}" data-action="pick-verb" data-id="${verb.id}">
-            <span>${escapeHtml(verb.infinitive)}</span>
-            <span class="verb-source">${escapeHtml(sourceShortLabel(verb))}</span>
-          </button>
+          <div class="verb-item-row ${verb.id === state.currentVerbId ? "active" : ""}">
+            <button class="verb-item" data-action="pick-verb" data-id="${verb.id}" aria-label="选择 ${escapeAttr(verb.infinitive)}">
+              <span>${escapeHtml(verb.infinitive)}</span>
+              <span class="verb-source">${escapeHtml(sourceShortLabel(verb))}</span>
+            </button>
+            <button class="verb-delete" data-action="delete-verb" data-id="${verb.id}" title="删除动词" aria-label="删除 ${escapeAttr(verb.infinitive)}" ${state.verbs.length <= 1 ? "disabled" : ""}>
+              ${iconTrash()}
+            </button>
+          </div>
         `).join("")}
       </div>
     </section>
@@ -355,6 +362,7 @@ function handleAction(event) {
   if (action === "manual-blank") createManualDraft();
   if (action === "save-draft") saveDraftVerb();
   if (action === "pick-verb") pickVerb(event.currentTarget.dataset.id);
+  if (action === "delete-verb") deleteVerb(event.currentTarget.dataset.id);
   if (action === "check-row") checkRow(event.currentTarget.dataset.person);
   if (action === "toggle-standards") toggleStandards();
   if (action === "reset-page") resetCurrentPage();
@@ -529,7 +537,7 @@ async function runLookup() {
 
   const assistantResult = await lookupFayuAssistant(input);
   if (assistantResult.verb) {
-    state.draftVerb = withId(assistantResult.verb);
+    state.draftVerb = withId(cleanVerbForms(assistantResult.verb));
     state.lookupStatus = `已从法语助手读取 ${assistantResult.verb.infinitive}，请校对后保存。`;
     render();
     return;
@@ -575,10 +583,10 @@ function createManualDraft() {
 
 function saveDraftVerb() {
   if (!state.draftVerb) return;
-  const verb = {
+  const verb = cleanVerbForms({
     ...state.draftVerb,
     confirmedAt: new Date().toISOString()
-  };
+  });
   const existingIndex = state.verbs.findIndex((item) => item.infinitive === verb.infinitive);
   if (existingIndex >= 0) {
     state.verbs[existingIndex] = verb;
@@ -592,8 +600,32 @@ function saveDraftVerb() {
   render();
 }
 
+function deleteVerb(id) {
+  const result = deleteVerbById(state.verbs, id, state.currentVerbId);
+  state.verbs = result.verbs;
+  state.currentVerbId = result.currentVerbId;
+  state.practice = null;
+  state.exam = null;
+  saveState();
+  render();
+}
+
 function withId(verb) {
   return ensureVerbId(verb, new Set(state.verbs.map((item) => item.id)));
+}
+
+function cleanVerbForms(verb) {
+  return {
+    ...verb,
+    tenses: Object.fromEntries(
+      Object.entries(verb.tenses ?? {}).map(([tense, forms]) => [
+        tense,
+        Object.fromEntries(
+          Object.entries(forms ?? {}).map(([person, value]) => [person, cleanConjugationForm(value)])
+        )
+      ])
+    )
+  };
 }
 
 function sourceShortLabel(verb) {
@@ -653,6 +685,10 @@ function iconEyeClosed() {
 
 function iconClose() {
   return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+}
+
+function iconTrash() {
+  return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M9 7l1-3h4l1 3M6 7l1 14h10l1-14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
 
 function iconSearch() {
