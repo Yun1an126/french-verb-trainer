@@ -1,4 +1,3 @@
-
 import { PERSONS, TENSES } from "./conjugation.js";
 import { buildFayuAssistantUrl } from "./verbData.js";
 
@@ -42,12 +41,12 @@ export function parseFayuAssistantText(text, fallbackInfinitive) {
     return null;
   }
 
-  const tenses = {
+  const tenses = cleanConjugationTenses({
     present: first[0],
     passeCompose: first[1],
     imparfait: first[2],
     futur: second[2]
-  };
+  });
 
   if (!hasCompleteSupportedTenses(tenses)) {
     return null;
@@ -131,10 +130,25 @@ function splitFayuRow(row, person) {
 }
 
 function cleanFayuForm(value) {
+  return cleanConjugationForm(value);
+}
+
+export function cleanConjugationForm(value) {
   const repaired = String(value ?? "")
     .replace(/(\p{L})\s+([çÇ])\s+(\p{L})/gu, "$1$2$3")
     .replace(/(\p{Ll}{2,})\s+(u|s|t|e|es|is|ent|ons|ez|ais|ait|ions|iez|aient|ai|as|a|âmes|âtes|èrent|rai|ras|ra|rons|rez|ront|ont|é)(?=\b)/gu, "$1$2");
   return collapseHighlightedWordSpaces(repaired);
+}
+
+function cleanConjugationTenses(tenses) {
+  return Object.fromEntries(
+    Object.entries(tenses).map(([tense, forms]) => [
+      tense,
+      Object.fromEntries(
+        Object.entries(forms).map(([person, value]) => [person, cleanConjugationForm(value)])
+      )
+    ])
+  );
 }
 
 function collapseHighlightedWordSpaces(value) {
