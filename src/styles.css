@@ -369,28 +369,73 @@ button {
   gap: 7px;
 }
 
-.verb-item {
+.verb-item-row {
   width: 100%;
   min-height: 40px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   border: 0;
   border-radius: 8px;
   background: #f6f8f9;
   color: var(--ink);
-  padding: 9px 10px;
-  text-align: left;
+  padding: 4px;
 }
 
-.verb-item.active {
+.verb-item-row.active {
   background: var(--teal-soft);
   color: var(--teal);
   font-weight: 850;
 }
 
+.verb-item {
+  min-width: 0;
+  flex: 1;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.verb-item span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.verb-delete {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.verb-delete:hover:not(:disabled) {
+  border-color: #efb7bf;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.verb-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
 .verb-source {
+  flex: 0 0 auto;
   color: var(--muted);
   font-size: 11px;
 }
